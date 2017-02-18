@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>waterfall</title>
+    <link rel="stylesheet" href="waterfall/waterfall.css">
+    <script src="waterfall/waterfall.js"></script>
+</head>
+<body>
+    <style>
+        .waterfall-item{
+            width: 210px;
+            padding: 20px;
+            border: 5px solid;
+            margin: 10px;
+        }
+        .scrollContainer{
+            width: 80%;
+            background-color: #cccccc;
+            border: 1px solid;
+            height: 600px;
+            overflow: auto;
+        }
+    </style>
+    <div id="scorllContainer" class="scrollContainer">
+        <div id="container" class="waterfall">
+
+        </div>
+    </div>
+
+    <script>
+        var generateItemFn=function(){
+            var item=document.createElement("div");
+            item.innerText=this.waterfallItems.length;
+            var image=document.createElement("img");
+            image.src="http://cued.xunlei.com/demos/publ/img/"+"P_"+this.waterfallItems.length.toLocaleString("arab",{minimumIntegerDigits:3})+".jpg";
+            item.appendChild(image);
+            for(var i=0;i<Math.floor(Math.random()*10);i++){
+                var text = document.createElement("p");
+                text.innerHTML="这是一个测试用的段落，有长有短啦";
+                item.appendChild(text);
+            }
+            return item;
+        }
+        /*
+         * 请不要在generateItemFn中直接往容器中添加元素而应该生成元素以后使用return将生成的元素返回
+         * 当返回值为假时则终止添加元素
+         * */
+        Waterfall("#container",{itemWidth:210,total:200,generateItemFn:generateItemFn,scrollContainer:"#scorllContainer"});
+    </script>
+</body>
+</html>
