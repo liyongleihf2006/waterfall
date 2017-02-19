@@ -51,10 +51,6 @@
                 reject("There should be no more pictures, so this is the end of the rolling load");
             });
         }
-        /*
-         * 请不要在generateItemFn中直接往容器中添加元素而应该生成元素以后使用return将生成的元素返回
-         * 当返回值为假时则终止添加元素
-         * */
         Waterfall("#container",{generateItemFn:generateItemFn,scrollContainer:"#scorllContainer"});
     </script>
 </body>
