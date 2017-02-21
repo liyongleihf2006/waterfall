@@ -7,51 +7,70 @@
     <script src="waterfall/waterfall.js"></script>
 </head>
 <body>
-    <style>
-        .scrollContainer{
-            width: 80%;
-            background-color: #cccccc;
-            border: 1px solid;
-            height: 600px;
-            overflow: auto;
-        }
-        .preItem{
-            padding: 10px;
-            border: 5px solid;
-            margin: 5px;
-            background-color: beige;
-            text-align: center;
-        }
-    </style>
-    <div id="scorllContainer" class="scrollContainer">
-        <div id="container" class="waterfall">
+<style>
+    .scrollContainer{
+        width: 80%;
+        background-color: #cccccc;
+        border: 1px solid;
+        height: 600px;
+        overflow: auto;
+    }
+    .preItem{
+        padding: 10px;
+        border: 5px solid;
+        margin: 5px;
+        background-color: beige;
+        text-align: center;
+    }
+    .close{
+        float: right;
+        cursor: pointer;
+    }
+    .close:hover{
+        color: #cccccc;
+    }
+</style>
+<div id="scorllContainer" class="scrollContainer">
+    <div id="container" class="waterfall">
 
-        </div>
     </div>
+</div>
 
-    <script>
-        var generateItemFn=function(resolve,reject){
-            var item=document.createElement("div");
-            item.classList.add("preItem");
-            var no=document.createElement("div");
-            no.innerText=this.waterfallItems.length;
-            item.appendChild(no);
-            var image=document.createElement("img");
-            image.src="http://cued.xunlei.com/demos/publ/img/"+"P_"+this.waterfallItems.length.toLocaleString("arab",{minimumIntegerDigits:3})+".jpg";
-            item.appendChild(image);
-            for(var i=0;i<Math.floor(Math.random()*10);i++){
-                var text = document.createElement("p");
-                text.innerHTML="这是一个测试用的段落，有长有短啦";
-                item.appendChild(text);
-            }
-            image.addEventListener("load",function(){
-                resolve(item);
-            });
-            image.addEventListener("error",function(){
-                reject("There should be no more pictures, so this is the end of the rolling load");
-            });
+<script>
+    var generateItemFn=function(resolve,reject){
+        var _this=this;
+        /*曾经添加到瀑布流中的元素的总和,后来被删除掉的也算*/
+        var idx=this.waterfallItemsOriginLength;
+        var item=document.createElement("div");
+        item.classList.add("preItem");
+        var no=document.createElement("div");
+        no.innerText=idx;
+        item.appendChild(no);
+        var close=document.createElement("span");
+        close.classList.add("close");
+        close.innerText="X";
+        close.addEventListener("click",function(){
+            _this.removeWaterfall(item);
+        });
+        no.appendChild(close);
+        var image=document.createElement("img");
+        image.src="http://cued.xunlei.com/demos/publ/img/"+"P_"
+                +(1000+idx+"").slice(1)
+                +".jpg";
+        item.appendChild(image);
+        for(var i=0;i<Math.floor(Math.random()*10);i++){
+            var text = document.createElement("p");
+            text.innerHTML="这是一个测试用的段落，有长有短啦";
+            item.appendChild(text);
         }
-        Waterfall("#container",{generateItemFn:generateItemFn,scrollContainer:"#scorllContainer"});
-    </script>
+        image.addEventListener("load",function(){
+            resolve(item);
+        });
+        image.addEventListener("error",function(){
+            reject("There should be no more pictures, so this is the end of the rolling load");
+        });
+    }
+    Waterfall("#container",{generateItemFn:generateItemFn,scrollContainer:"#scorllContainer"});
+</script>
 </body>
 </html>

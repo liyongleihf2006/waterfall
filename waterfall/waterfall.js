@@ -17,6 +17,12 @@
  *      当要向瀑布流中添加元素item的时候请调用resolve(item);
  *      当终止瀑布流中添加元素的时候请调用reject(msg),msg是string类型的任意字符串,用来说明为什么终止添加元素
  * ******************************
+ * Waterfall.prototype.removeWaterfall(item):
+ * 删除瀑布流中的某个瀑布流元素
+ * params:
+ *      item: dom;瀑布流中的某元素,如果item拥有.waterfall-item则直接删除当前元素,
+ *            如果item没有.waterfall-item则删除该元素的拥有.waterfall-item的祖先元素
+ * ******************************
  * 不支持ie浏览器...
  */
 function Waterfall(container,option){
@@ -29,6 +35,7 @@ function Waterfall(container,option){
     if(!option||!(option instanceof Object)){
         throw new Error("the option must be an object");
     }
+    var _this=this;
     this.generateItemFn=option.generateItemFn;
     if(typeof this.generateItemFn !== "function"){
         throw new Error("the generateItemFn must be a function");
@@ -42,17 +49,34 @@ function Waterfall(container,option){
         this.scrollContainer=document.querySelector(this.scrollContainer);
     }
     this.waterfallItems=[];
-    this.calculationColumn().then(function(){
-        this.generateColumn();
-        this.initGenerateItem();
-    }.bind(this));
-    this.scrollGenerateItem();
-    this.resize();
+    /*曾经插入到瀑布流中的元素数量*/
+    this.waterfallItemsOriginLength=0;
+    this.isShouldAdd=true;
+    this.__calculationColumn().then(function(){
+        _this.__generateColumn();
+        _this.__initGenerateItem();
+    });
+    this.__scrollGenerateItem();
+    this.__resize();
+}
+Waterfall.prototype.removeWaterfall=function(item){
+    var waterfall=closest(item,"waterfall-item");
+    var idx=this.waterfallItems.indexOf(waterfall);
+    waterfall.parentNode.removeChild(waterfall);
+    this.waterfallItems.splice(idx,1);
+    this.__addWaterfall();
+    function closest(item,clazz){
+        if(item.classList.contains(clazz)){
+            return item;
+        }else{
+            return closest(item.parentNode,clazz);
+        }
+    }
 };
 /*
  * 浏览器大小改变时候重新渲染
  * */
-Waterfall.prototype.resize=function(){
+Waterfall.prototype.__resize=function(){
     var _this=this,
         container=this.container,
         cols,
@@ -60,18 +84,18 @@ Waterfall.prototype.resize=function(){
     window.addEventListener("resize",function(){
         var waterfallItemIdx=-1;
         /*
-        * 当瀑布流中的列只要有一个跟第一列距离父元素的左边距离相同
-        * 或者
-        * 父元素的宽度比所有的列的宽度和加上一个列的宽度还要宽的时候就重新计算渲染布局
-        * */
+         * 当瀑布流中的列只要有一个跟第一列距离父元素的左边距离相同
+         * 或者
+         * 父元素的宽度比所有的列的宽度和加上一个列的宽度还要宽的时候就重新计算渲染布局
+         * */
         var resize=[].slice.call(container.children,1).some(function(col){
                 return col.offsetLeft===container.children[0].offsetLeft;
             })||(container.clientWidth-[].reduce.call(container.children,function(totalWidth,current){
                 return totalWidth+current.clientWidth;
             },0)>=parseFloat(_this.columnWidth));
         if(resize){
-            _this.calculationColumn().then(function(){
-                _this.generateColumn();
+            _this.__calculationColumn().then(function(){
+                _this.__generateColumn();
                 cols=Array.prototype.slice.call(_this.container.children);
                 generateWaterfallItem();
                 function generateWaterfallItem(){
@@ -85,7 +109,7 @@ Waterfall.prototype.resize=function(){
                         return privous.clientHeight>current.clientHeight?current:privous;
                     }).appendChild(waterfallItems[waterfallItemIdx]);
                     generateWaterfallItem();
-                };
+                }
                 if(_this.currentItem){
                     _this.currentItem.scrollIntoView(true);
                 }
@@ -94,38 +118,39 @@ Waterfall.prototype.resize=function(){
             })
         }
     });
-}
+};
 /*
  * 滚动加载瀑布流元素
  * */
-Waterfall.prototype.scrollGenerateItem=function(){
-    var _this=this,
-        cols,
-        scrollContainer=this.scrollContainer,
-        currentRow,
-        promise,
-        isShouldAdd=false;
+Waterfall.prototype.__scrollGenerateItem=function(){
+    var _this=this,scrollContainer=this.scrollContainer;
     (scrollContainer === document.documentElement?window:scrollContainer).addEventListener("scroll",function(){
-        _this.currentItem=[].filter.call(_this.waterfallItems,function(item){
-            return item.offsetTop>(scrollContainer.scrollTop||document.body.scrollTop);
-        })[0];
-        if(promise&&!isShouldAdd){
-            return;
-        }else{
-            isShouldAdd=false;
-        }
-        addWaterfall();
+        _this.__addWaterfall();
     });
+
+};
+Waterfall.prototype.__addWaterfall=function(){
+    var _this=this,
+        scrollContainer=this.scrollContainer;
+    _this.currentItem=[].filter.call(_this.waterfallItems,function(item){
+        return item.offsetTop>(scrollContainer.scrollTop||document.body.scrollTop);
+    })[0];
+    if(!_this.isShouldAdd){
+        return;
+    }else{
+        _this.isShouldAdd=false;
+    }
+    addWaterfall();
     function addWaterfall(){
-        cols=Array.prototype.slice.call(_this.container.children);
-        currentRow=cols.reduce(function(privous,current){
+        var cols=Array.prototype.slice.call(_this.container.children);
+        var currentRow=cols.reduce(function(privous,current){
             return privous.clientHeight>current.clientHeight?current:privous;
         });
         if(currentRow.offsetTop+currentRow.clientHeight>(scrollContainer.scrollTop||document.body.scrollTop) + (scrollContainer.innerHeight || document.documentElement.clientHeight)+100){
-            isShouldAdd=true;
+            _this.isShouldAdd=true;
             return;
-        };
-        promise=new Promise(function(resolve, reject){
+        }
+        var promise=new Promise(function(resolve, reject){
             _this.generateItemFn(resolve, reject);
         });
         promise.then(function(item){
@@ -134,16 +159,17 @@ Waterfall.prototype.scrollGenerateItem=function(){
             waterfall.appendChild(item);
             _this.waterfallItems.push(waterfall);
             currentRow.appendChild(waterfall);
+            _this.waterfallItemsOriginLength++;
             addWaterfall();
         },function(msg){
             console.log(msg);
         });
     }
-}
+};
 /*
  * 生成每个瀑布流元素
  * */
-Waterfall.prototype.initGenerateItem=function(){
+Waterfall.prototype.__initGenerateItem=function(){
     var _this=this,
         scrollContainer=this.scrollContainer,
         cols=Array.prototype.slice.call(this.container.children),
@@ -168,18 +194,19 @@ Waterfall.prototype.initGenerateItem=function(){
             waterfall.appendChild(item);
             _this.waterfallItems.push(waterfall);
             currentPushRow.appendChild(waterfall);
+            _this.waterfallItemsOriginLength++;
             initGenerateWaterfallItem();
         },function(msg){
             console.log(msg);
         })
-    };
-}
+    }
+};
 /*
  * 生成列
  * */
-Waterfall.prototype.generateColumn=function(){
+Waterfall.prototype.__generateColumn=function(){
     var i,children=this.container.children,cols=document.createDocumentFragment(),col;
-    for(var i=children.length-1;i>=0;i--){
+    for(i=children.length-1;i>=0;i--){
         this.container.removeChild(children[i]);
     }
     for(i=0;i<this.columnCount;i++){
@@ -189,11 +216,11 @@ Waterfall.prototype.generateColumn=function(){
         cols.appendChild(col);
     }
     this.container.appendChild(cols);
-}
+};
 /*
  * 计算列数以及每列的宽度
  * */
-Waterfall.prototype.calculationColumn=function(){
+Waterfall.prototype.__calculationColumn=function(){
     var _this=this,promise;
     if(!_this.columnWidth){
         promise=new Promise(function(resolve, reject){
@@ -205,7 +232,6 @@ Waterfall.prototype.calculationColumn=function(){
             columnWidthToolRow.classList.add("waterfall-column");
             columnWidhtToolItem.classList.add("waterfall-item");
             columnWidthToolRow.appendChild(columnWidhtToolItem);
-            item.classList.add("waterfall-item");
             item.style.opacity=0;
             columnWidhtToolItem.appendChild(item);
             _this.columnCount=Math.floor(_this.container.getBoundingClientRect().width/columnWidthToolRow.getBoundingClientRect().width);
@@ -215,10 +241,10 @@ Waterfall.prototype.calculationColumn=function(){
             console.log(msg);
         })
     }else{
-        promise=new Promise(function(resolve, reject){
+        promise=new Promise(function(resolve,reject){
             _this.columnCount=Math.floor(_this.container.getBoundingClientRect().width/parseFloat(_this.columnWidth));
             resolve();
         });
     }
     return promise;
-}
+};
