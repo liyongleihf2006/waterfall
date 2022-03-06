@@ -54,9 +54,7 @@
         });
         no.appendChild(close);
         var image=document.createElement("img");
-        image.src="http://cued.xunlei.com/demos/publ/img/"+"P_"
-                +(1000+idx+"").slice(1)
-                +".jpg";
+        image.src=`https://i.picsum.photos/id/${parseInt(Math.random()*1000)}/${parseInt(Math.random()*1000)}/${parseInt(Math.random()*1000)}.jpg`
         item.appendChild(image);
         for(var i=0;i<Math.floor(Math.random()*10);i++){
             var text = document.createElement("p");
